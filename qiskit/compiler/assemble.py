@@ -18,7 +18,6 @@ import copy
 import logging
 import warnings
 from time import time
-
 from typing import Union, List, Dict, Optional
 from qiskit.circuit import QuantumCircuit, Qubit, Parameter
 from qiskit.exceptions import QiskitError
@@ -65,11 +64,9 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
              init_qubits: bool = True,
              **run_config: Dict) -> Qobj:
     """Assemble a list of circuits or pulse schedules into a ``Qobj``.
-
     This function serializes the payloads, which could be either circuits or schedules,
     to create ``Qobj`` "experiments". It further annotates the experiment payload with
     header and configurations.
-
     Args:
         experiments: Circuit(s) or pulse schedule(s) to execute
         backend: If set, some runtime options are automatically grabbed from
@@ -99,7 +96,6 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
         schedule_los: Experiment LO configurations, frequencies are given in Hz.
         meas_level: Set the appropriate level of the measurement output for pulse experiments.
         meas_return: Level of measurement data for the backend to return.
-
             For ``meas_level`` 0 and 1:
                 * ``single`` returns information from every shot.
                 * ``avg`` returns average measurement output (averaged over number of shots).
@@ -119,18 +115,15 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
             experiments will be run (one for each experiment/bind pair).
         parametric_pulses: A list of pulse shapes which are supported internally on the backend.
             Example::
-
             ['gaussian', 'constant']
         init_qubits: Whether to reset the qubits to the ground state for each shot.
                      Default: ``True``.
         **run_config: Extra arguments used to configure the run (e.g., for Aer configurable
             backends). Refer to the backend documentation for details on these
             arguments.
-
     Returns:
             A ``Qobj`` that can be run on a backend. Depending on the type of input,
             this will be either a ``QasmQobj`` or a ``PulseQobj``.
-
     Raises:
         QiskitError: if the input cannot be interpreted as either circuits or schedules
     """
@@ -179,15 +172,12 @@ def _parse_common_args(backend, qobj_id, qobj_header, shots,
     """Resolve the various types of args allowed to the assemble() function through
     duck typing, overriding args, etc. Refer to the assemble() docstring for details on
     what types of inputs are allowed.
-
     Here the args are resolved by converting them to standard instances, and prioritizing
     them in case a run option is passed through multiple args (explicitly setting an arg
     has more priority than the arg set by backend)
-
     Returns:
         RunConfig: a run config, which is a standardized object that configures the qobj
             and determines the runtime environment.
-
     Raises:
         QiskitError: if the memory arg is True and the backend does not support
         memory. Also if shots exceeds max_shots for the configured backend.
@@ -246,12 +236,11 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
                       **run_config):
     """Build a pulse RunConfig replacing unset arguments with defaults derived from the `backend`.
     See `assemble` for more information on the required arguments.
-
     Returns:
         RunConfig: a run config, which is a standardized object that configures the qobj
             and determines the runtime environment.
     Raises:
-        SchemaValidationError: if the given meas_level is not allowed for the given `backend`.
+        SchemaValidationError: if the given meas_level, rep_time, rep_delay is not allowed for the given `backend`.
     """
     # grab relevant info from backend if it exists
     backend_config = None
@@ -264,6 +253,16 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
             raise SchemaValidationError(
                 ('meas_level = {} not supported for backend {}, only {} is supported'
                  ).format(meas_level, backend_config.backend_name, backend_config.meas_levels)
+            )
+        if rep_time not in getattr(backend_config, 'rep_times', None):
+            raise SchemaValidationError(
+                ('rep_time = {} not supported for backend {}, only {} is supported'
+                 ).format(rep_time, backend_config.backend_name, backend_config.rep_times)
+            )
+        if rep_delay not in getattr(backend_config, 'rep_delays', None):
+            raise SchemaValidationError(
+                ('rep_delay = {} not supported for backend {}, only {} is supported'
+                 ).format(rep_delay, backend_config.backend_name, backend_config.rep_delays)
             )
 
     meas_map = meas_map or getattr(backend_config, 'meas_map', None)
@@ -329,7 +328,6 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
 def _parse_circuit_args(parameter_binds, **run_config):
     """Build a circuit RunConfig replacing unset arguments with defaults derived from the `backend`.
     See `assemble` for more information on the required arguments.
-
     Returns:
         RunConfig: a run config, which is a standardized object that configures the qobj
             and determines the runtime environment.
@@ -348,13 +346,10 @@ def _expand_parameters(circuits, run_config):
     all circuits and all parameter binds in the run_config. Returns an expanded
     list of circuits (if parameterized) with all parameters bound, and a copy of
     the run_config with parameter_binds cleared.
-
     If neither the circuits nor the run_config specify parameters, the two are
     returned unmodified.
-
     Raises:
         QiskitError: if run_config parameters are not compatible with circuit parameters
-
     Returns:
         Tuple(List[QuantumCircuit], RunConfig):
           - List of input circuits expanded and with parameters bound
